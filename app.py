@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import nsepy as nse
 from datetime import date
 import yfinance as yf
 import plotly.express as px
