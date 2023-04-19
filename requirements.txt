@@ -1,0 +1,9 @@
+streamlit
+pandas
+datetime
+yfinance
+plotly
+requests
+aplha_vantage
+stocnews
+pandas_ta
