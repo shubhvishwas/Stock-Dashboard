@@ -4,6 +4,7 @@ import numpy as np
 from datetime import date
 import yfinance as yf
 import plotly.express as px
+import plotly.graph_objects as go
 import requests
 
 
@@ -15,8 +16,50 @@ ticker1="AAPL"
 start_date1=date(2022,3,31)
 end_date1=date(2023,4,1)
 data=yf.download(ticker,start=start_date,end=end_date)
-fig=px.line(data,x=data.index,y=data['Adj Close'],title=ticker)
-st.plotly_chart(fig)
+Line_chart,Cnadlestick=st.tabs(["Line Chart","Candlestick Chart"])
+with Line_chart:
+  fig=px.line(data,x=data.index,y=data['Adj Close'],title=ticker)
+  st.plotly_chart(fig)
+with Cnadlestick:
+    fig=go.Figure(data=[go.Candlestick(x=data.index,
+                  open=data['Open'], high=data['High'],
+                  low=data['Low'], close=data['Adj Close'])])
+    fig.update_xaxes(rangebreaks=[dict(bounds=["sat", "mon"])])
+    # removing all empty dates
+  # build complete timeline from start date to end date
+    dt_all = pd.date_range(start=data.index[0],end=data.index[-1])
+  # retrieve the dates that ARE in the original datset
+    dt_obs = [d.strftime("%Y-%m-%d") for d in pd.to_datetime(data.index)]
+  # define dates with missing values
+    dt_breaks = [d for d in dt_all.strftime("%Y-%m-%d").tolist() if not d in dt_obs]
+    fig.update_xaxes(rangebreaks=[dict(values=dt_breaks)])
+    data3=data
+    # add moving averages to df
+    data['MA20'] = data['Close'].rolling(window=20).mean()
+    data['MA09'] = data['Close'].rolling(window=9).mean()
+    #data['MA9'] = data['Close'].rolling(window=9).mean()
+    # fig.add_trace(go.Scatter(x=data.index,
+    #                      y=data['MA9'],
+    #                      opacity=0.7,
+    #                      line=dict(color='blue', width=2),
+    #                      name='MA 9'))
+    fig.add_trace(go.Scatter(x=data.index,
+                            y=data['MA20'],
+                            opacity=0.7,
+                            line=dict(color='orange', width=2),
+                            name='MA 20'))
+    fig.add_trace(go.Scatter(x=data.index,
+                            y=data['MA09'],
+                            opacity=0.7,
+                            line=dict(color='white', width=2),
+                            name='MA 09'))
+    fig.update_xaxes(rangebreaks=[dict(values=dt_breaks)])
+    # remove rangeslider
+    fig.update_layout(xaxis_rangeslider_visible=False)
+    # add chart title
+    fig.update_layout(title=ticker)
+    st.plotly_chart(fig)
+  
   
 pricing_data,fundamental_data,news,tech_indicator=st.tabs(["Pricing Data","Fundamental Data","Top 10 News","Technical Analysis Dashboard"])
 
