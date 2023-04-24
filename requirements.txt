@@ -8,4 +8,3 @@ stocknews
 pandas_ta
 alpha_vantage
 ta
-plotly.subplots
