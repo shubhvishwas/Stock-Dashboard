@@ -6,6 +6,9 @@ import yfinance as yf
 import plotly.express as px
 import plotly.graph_objects as go
 import requests
+from ta.trend import MACD
+from ta.momentum import StochasticOscillator
+from plotly.subplots import make_subplots
 
 
 st.title("Stock Dashboard")
@@ -21,45 +24,99 @@ with Line_chart:
   fig=px.line(data,x=data.index,y=data['Adj Close'],title=ticker)
   st.plotly_chart(fig)
 with Cnadlestick:
-    fig=go.Figure(data=[go.Candlestick(x=data.index,
-                  open=data['Open'], high=data['High'],
-                  low=data['Low'], close=data['Adj Close'])])
-    fig.update_xaxes(rangebreaks=[dict(bounds=["sat", "mon"])])
-    # removing all empty dates
-  # build complete timeline from start date to end date
-    dt_all = pd.date_range(start=data.index[0],end=data.index[-1])
-  # retrieve the dates that ARE in the original datset
-    dt_obs = [d.strftime("%Y-%m-%d") for d in pd.to_datetime(data.index)]
-  # define dates with missing values
-    dt_breaks = [d for d in dt_all.strftime("%Y-%m-%d").tolist() if not d in dt_obs]
-    fig.update_xaxes(rangebreaks=[dict(values=dt_breaks)])
-    data3=data
-    # add moving averages to df
-    data['MA20'] = data['Close'].rolling(window=20).mean()
-    data['MA09'] = data['Close'].rolling(window=9).mean()
-    #data['MA9'] = data['Close'].rolling(window=9).mean()
-    # fig.add_trace(go.Scatter(x=data.index,
-    #                      y=data['MA9'],
-    #                      opacity=0.7,
-    #                      line=dict(color='blue', width=2),
-    #                      name='MA 9'))
-    fig.add_trace(go.Scatter(x=data.index,
-                            y=data['MA20'],
-                            opacity=0.7,
-                            line=dict(color='orange', width=2),
-                            name='MA 20'))
-    fig.add_trace(go.Scatter(x=data.index,
-                            y=data['MA09'],
-                            opacity=0.7,
-                            line=dict(color='white', width=2),
-                            name='MA 09'))
-    fig.update_xaxes(rangebreaks=[dict(values=dt_breaks)])
-    # remove rangeslider
-    fig.update_layout(xaxis_rangeslider_visible=False)
-    # add chart title
-    fig.update_layout(title=ticker)
-    st.plotly_chart(fig)
-  
+  df=data
+# removing all empty dates
+# build complete timeline from start date to end date
+dt_all = pd.date_range(start=df.index[0],end=df.index[-1])
+# retrieve the dates that ARE in the original datset
+dt_obs = [d.strftime("%Y-%m-%d") for d in pd.to_datetime(df.index)]
+# define dates with missing values
+dt_breaks = [d for d in dt_all.strftime("%Y-%m-%d").tolist() if not d in dt_obs]
+fig.update_layout(xaxis_rangebreaks=[dict(values=dt_breaks)])
+# add moving averages to df
+df['MA20'] = df['Close'].rolling(window=20).mean()
+df['MA5'] = df['Close'].rolling(window=5).mean()
+# first declare an empty figure
+fig = go.Figure()
+# add OHLC trace
+macd = MACD(close=df['Close'], 
+            window_slow=26,
+            window_fast=12, 
+            window_sign=9)
+# stochastics
+stoch = StochasticOscillator(high=df['High'],
+                             close=df['Close'],
+                             low=df['Low'],
+                             window=14, 
+                             smooth_window=3)
+
+fig = make_subplots(rows=4, cols=1, shared_xaxes=True,
+                    vertical_spacing=0.01, 
+                    row_heights=[0.5,0.1,0.2,0.2])
+# Plot OHLC on 1st subplot (using the codes from before)
+fig.add_trace(go.Candlestick(x=df.index,
+                             open=df['Open'],
+                             high=df['High'],
+                             low=df['Low'],
+                             close=df['Close'], 
+                             showlegend=False))
+# add moving average traces
+fig.add_trace(go.Scatter(x=df.index, 
+                         y=df['MA5'], 
+                         line=dict(color='blue', width=2), 
+                         name='MA 5'))
+fig.add_trace(go.Scatter(x=df.index, 
+                         y=df['MA20'], 
+                         line=dict(color='orange', width=2), 
+                         name='MA 20'))
+
+# Plot volume trace on 2nd row 
+colors = ['green' if row['Open'] - row['Close'] >= 0 
+          else 'red' for index, row in df.iterrows()]
+fig.add_trace(go.Bar(x=df.index, 
+                     y=df['Volume'],
+                     marker_color=colors
+                    ), row=2, col=1)
+
+# Plot MACD trace on 3rd row
+colors = ['green' if val >= 0 
+          else 'red' for val in macd.macd_diff()]
+fig.add_trace(go.Bar(x=df.index, 
+                     y=macd.macd_diff(),
+                     marker_color=colors
+                    ), row=3, col=1)
+fig.add_trace(go.Scatter(x=df.index,
+                         y=macd.macd(),
+                         line=dict(color='red', width=2)
+                        ), row=3, col=1)
+fig.add_trace(go.Scatter(x=df.index,
+                         y=macd.macd_signal(),
+                         line=dict(color='blue', width=1)
+                        ), row=3, col=1)
+
+# Plot stochastics trace on 4th row 
+fig.add_trace(go.Scatter(x=df.index,
+                         y=stoch.stoch(),
+                         line=dict(color='orange', width=2)
+                        ), row=4, col=1)
+fig.add_trace(go.Scatter(x=df.index,
+                         y=stoch.stoch_signal(),
+                         line=dict(color='blue', width=1)
+                        ), row=4, col=1)
+
+# update layout by changing the plot size, hiding legends & rangeslider, and removing gaps between dates
+fig.update_layout(height=900, 
+                  showlegend=False, 
+                  xaxis_rangeslider_visible=False,
+                  xaxis_rangebreaks=[dict(values=dt_breaks)])
+fig.update_layout(title=ticker)
+
+# update y-axis label
+fig.update_yaxes(title_text="Price", row=1, col=1)
+fig.update_yaxes(title_text="Volume", row=2, col=1)
+fig.update_yaxes(title_text="MACD", showgrid=False, row=3, col=1)
+fig.update_yaxes(title_text="Stoch", row=4, col=1)
+st.plotly_chart(fig)
   
 pricing_data,fundamental_data,news,tech_indicator=st.tabs(["Pricing Data","Fundamental Data","Top 10 News","Technical Analysis Dashboard"])
 
