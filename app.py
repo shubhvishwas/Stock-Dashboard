@@ -12,12 +12,9 @@ from plotly.subplots import make_subplots
 
 
 st.title("Stock Dashboard")
-ticker=st.sidebar.text_input("Ticker")
-start_date=st.sidebar.date_input("Start Date")
+ticker=st.sidebar.text_input("Ticker","AAPL")
+start_date=st.sidebar.date_input("Start Date",date(2022,3,31))
 end_date=st.sidebar.date_input("End Date")
-ticker1="AAPL"
-start_date1=date(2022,3,31)
-end_date1=date(2023,4,1)
 data=yf.download(ticker,start=start_date,end=end_date)
 Line_chart,Cnadlestick=st.tabs(["Line Chart","Candlestick Chart"])
 with Line_chart:
@@ -45,63 +42,63 @@ with Cnadlestick:
               window_sign=9)
   # stochastics
   stoch = StochasticOscillator(high=df['High'],
-                               close=df['Close'],
-                               low=df['Low'],
-                               window=14, 
-                               smooth_window=3)
+                              close=df['Close'],
+                              low=df['Low'],
+                              window=14, 
+                              smooth_window=3)
 
   fig = make_subplots(rows=4, cols=1, shared_xaxes=True,
                       vertical_spacing=0.01, 
                       row_heights=[0.5,0.1,0.2,0.2])
   # Plot OHLC on 1st subplot (using the codes from before)
   fig.add_trace(go.Candlestick(x=df.index,
-                               open=df['Open'],
-                               high=df['High'],
-                               low=df['Low'],
-                               close=df['Close'], 
-                               showlegend=False))
+                              open=df['Open'],
+                              high=df['High'],
+                              low=df['Low'],
+                              close=df['Close'], 
+                              showlegend=False))
   # add moving average traces
   fig.add_trace(go.Scatter(x=df.index, 
-                           y=df['MA5'], 
-                           line=dict(color='blue', width=2), 
-                           name='MA 5'))
+                          y=df['MA5'], 
+                          line=dict(color='blue', width=2), 
+                          name='MA 5'))
   fig.add_trace(go.Scatter(x=df.index, 
-                           y=df['MA20'], 
-                           line=dict(color='orange', width=2), 
-                           name='MA 20'))
+                          y=df['MA20'], 
+                          line=dict(color='orange', width=2), 
+                          name='MA 20'))
 
   # Plot volume trace on 2nd row 
   colors = ['green' if row['Open'] - row['Close'] >= 0 
             else 'red' for index, row in df.iterrows()]
   fig.add_trace(go.Bar(x=df.index, 
-                       y=df['Volume'],
-                       marker_color=colors
+                      y=df['Volume'],
+                      marker_color=colors
                       ), row=2, col=1)
 
   # Plot MACD trace on 3rd row
   colors = ['green' if val >= 0 
             else 'red' for val in macd.macd_diff()]
   fig.add_trace(go.Bar(x=df.index, 
-                       y=macd.macd_diff(),
-                       marker_color=colors
+                      y=macd.macd_diff(),
+                      marker_color=colors
                       ), row=3, col=1)
   fig.add_trace(go.Scatter(x=df.index,
-                           y=macd.macd(),
-                           line=dict(color='red', width=2)
+                          y=macd.macd(),
+                          line=dict(color='red', width=2)
                           ), row=3, col=1)
   fig.add_trace(go.Scatter(x=df.index,
-                           y=macd.macd_signal(),
-                           line=dict(color='blue', width=1)
+                          y=macd.macd_signal(),
+                          line=dict(color='blue', width=1)
                           ), row=3, col=1)
 
   # Plot stochastics trace on 4th row 
   fig.add_trace(go.Scatter(x=df.index,
-                           y=stoch.stoch(),
-                           line=dict(color='orange', width=2)
+                          y=stoch.stoch(),
+                          line=dict(color='orange', width=2)
                           ), row=4, col=1)
   fig.add_trace(go.Scatter(x=df.index,
-                           y=stoch.stoch_signal(),
-                           line=dict(color='blue', width=1)
+                          y=stoch.stoch_signal(),
+                          line=dict(color='blue', width=1)
                           ), row=4, col=1)
 
   # update layout by changing the plot size, hiding legends & rangeslider, and removing gaps between dates
@@ -158,7 +155,7 @@ with news:
       sn=StockNews(ticker, save_news=False)
       df_news=sn.read_rss()
       for i in range(0,10):
-        st.subheader(f'News{i+1}')
+        st.subheader(f'News {i+1}')
         st.write(df_news['published'][i])
         st.write(df_news['title'][i])
         st.write(df_news['summary'][i])
@@ -208,7 +205,7 @@ with tech_indicator:
   ind_list=df.ta.indicators(as_list=True)
   technical_indicator=st.selectbox('Tech Indicator',options=ind_list)
   method=technical_indicator
-  indicator=pd.DataFrame(getattr(ta,method)(low=data['Low'],close=data['Close'],high=data['High'],open=data['Open'],volume=data['Volume']))
+  indicator=pd.DataFrame(getattr(df.ta,method)(time=data.index,low=data['Low'],close=data['Close'],high=data['High'],open=data['Open'],volume=data['Volume']))
   indicator['Close']=data['Close']
   figW_ind_new=px.line(indicator)
   st.plotly_chart(figW_ind_new)
