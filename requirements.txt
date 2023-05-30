@@ -5,7 +5,7 @@ datetime
 yfinance
 plotly
 requests
-aplha-vantage
+aplha_vantage
 stocknews
 pandas_ta
 ta
