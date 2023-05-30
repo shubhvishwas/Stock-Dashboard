@@ -9,5 +9,5 @@ pandas_ta
 alpha_vantage
 ta
 matplotlib
-sickit-learn
+scikit-learn
 tensorflow
