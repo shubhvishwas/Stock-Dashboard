@@ -1,10 +1,14 @@
 streamlit
 pandas
+numpy
 datetime
 yfinance
 plotly
 requests
+aplha_vantage
 stocknews
 pandas_ta
-alpha_vantage
 ta
+matplotlib
+sickit-learn
+tensorflow
